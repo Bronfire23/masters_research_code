@@ -1,5 +1,6 @@
-source('C:/Users/mccal/OneDrive/Desktop/Masters/Research/masters_research/data_generation.R')
-source('C:/Users/mccal/OneDrive/Desktop/Masters/Research/masters_research/all_models_use.R')
+file_path <- '/Users/bronwynmccall/Documents/GitHub/masters_research_code/Simulation code/'
+source(paste(file_path, 'data_generation.R', sep = ""))
+source(paste(file_path, 'all_models_use.R', sep = ""))
 
 calculate_data_belongings <- function(params, data){
     #' Calculate component responsibilities for Univariate Gaussian Mixture Model

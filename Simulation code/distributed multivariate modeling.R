@@ -1,4 +1,12 @@
-# Centralised multivariate gaussian mixture modeling
+# Distributed multivariate gaussian mixture modeling
+## libaries
+library(ggplot2)
+library(MASS)
+library(reshape2)
+library(mvtnorm)
+file_path <- '/Users/bronwynmccall/Documents/GitHub/masters_research_code/Simulation code/'
+source(paste(file_path, 'all_models_use.R', sep = ""))
+
 ## parameters
 mu1=c(0,0,0,0)
 sigma1=matrix(c(3,0,0,0,0,3,0,0,0,0,3,0,0,0,0,3),ncol=4,nrow=4, byrow=TRUE)
@@ -13,11 +21,6 @@ params <- list('means' = means,
                'covs' = covs,
                'probs' = probs)
 
-## libaries
-library(ggplot2)
-library(MASS)
-library(reshape2)
-library(mvtnorm)
 
 generate_multivariate_mixture_gaussian_data <- function(means, covariances, probs, n) {
   # Ensure lengths match
@@ -89,7 +92,7 @@ calculate_node_local_sufficient_statistics_multivariate <- function(data, params
   means <- params$means
   
   ### Calculating the data belongings
-  belongings <- calculate_data_belongings(params = params, data = data)
+  belongings <- calculate_data_belongings_multivariate(params = params, data = data)
   k <- ncol(belongings)
   
   ### Calculating the local sufficient statistics for the node
@@ -186,13 +189,12 @@ node_local_statistics <- lapply(1:4, function(x) calculate_node_local_sufficient
 global_sufficient_statistics <- calculate_global_statistics_multivariate(node_local_statistics, gamma)
 params_new_dist <- estimate_parameters_with_sufficient_statistics_multivariate(global_sufficient_statistics)
 params_new_dist
-calculate_log_likelihood_with_full_data_multivariate(data, params_new_dist)
-calculate_log_likelihood_with_full_data_multivariate(data, centralised_estimates)
-
 data <- NULL
 for(i in 1:length(data_chunks)){
   data <- rbind(data, data_chunks[[i]])
 }
-gamma <- calculate_data_belongings(params, data)
+gamma <- calculate_data_belongings_multivariate(params, data)
 centralised_estimates <- estimate_parameters_with_full_data(data, gamma)
+calculate_log_likelihood_with_full_data_multivariate(data, params_new_dist)
+calculate_log_likelihood_with_full_data_multivariate(data, centralised_estimates)
 

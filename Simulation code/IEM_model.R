@@ -6,8 +6,9 @@
 #     2. iem_distributed_model
 
 # libraries
-source('C:/Users/mccal/OneDrive/Desktop/Masters/Research/masters_research/all_models_use.R')
-source('C:/Users/mccal/OneDrive/Desktop/Masters/Research/masters_research/data_generation.R')
+file_path <- '/Users/bronwynmccall/Documents/GitHub/masters_research_code/Simulation code/'
+source(paste(file_path, 'all_models_use.R', sep = ""))
+source(paste(file_path, 'data_generation.R', sep = ""))
 
 update_univariate_global_statistics <- function(global_statistics_old,
                                                 local_statistics_old, 

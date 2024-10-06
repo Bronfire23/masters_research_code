@@ -171,3 +171,71 @@ calculate_log_likelihood_with_full_data <- function(data, params){
     return(sum(log(likelihood)))
 }
 
+########### Multivariate code ###########
+calculate_data_belongings_multivariate <- function(params, data) {
+  
+  # Extracting parameters
+  means <- params$means
+  covs <- params$covs
+  probs <- params$probs
+  
+  # Ensure the number of means, covariances, and probabilities are the same
+  if (length(means) != length(covs) || length(means) != length(probs)) {
+    stop("Number of means, covariance matrices, and component probabilities must be equal.")
+  }
+  
+  # Number of components and data points
+  n_components <- length(means)
+  n <- nrow(data)
+  
+  # Initialize a matrix to store the numerator for gamma
+  gamma_num <- matrix(nrow = n, ncol = n_components)
+  
+  # Calculate the numerator for each component
+  for (i in 1:n_components) {
+    gamma_num[, i] <- probs[i] * dmvnorm(data, mean = means[[i]], sigma = covs[[i]])  
+  }
+  
+  # Calculate the denominator (sum across all components for each data point)
+  gamma_den <- rowSums(gamma_num)
+  
+  # Calculate gamma (posterior probabilities for each component)
+  gamma <- gamma_num / gamma_den
+  
+  # Check if gamma rows sum to 1 (allowing small rounding errors)
+  if (any(abs(rowSums(gamma) - 1) > .Machine$double.eps * n)) {
+    stop("Calculated belongings for each data point do not sum to 1.")
+  }
+  
+  # Check for negative values in gamma
+  if (any(gamma < 0)) {
+    stop("Calculated belongings contain negative values.")
+  }
+  
+  return(gamma)
+}
+
+calculate_log_likelihood_with_full_data_multivariate <- function(data, params) {
+  
+  # Initialize parameters for means, covariances, and mixing probabilities
+  mu <- params$means
+  sigma <- params$covs
+  weight <- params$mixing_probs
+  k <- length(mu)  # Number of components in the mixture
+  n <- nrow(data)  # Number of data points
+  likelihood <- numeric(n)  # To store the likelihood for each data point
+  
+  for (i in 1:n) {
+    point_likelihood <- 0
+    for (j in 1:k) {
+      # Compute the component density using dmvnorm for multivariate normal
+      component_density <- weight[j] * dmvnorm(data[i, ], mean = mu[[j]], sigma = sigma[[j]])
+      point_likelihood <- point_likelihood + component_density
+    }
+    likelihood[i] <- point_likelihood
+  }
+  
+  # Return the total log-likelihood by summing over the log of individual likelihoods
+  return(sum(log(likelihood)))
+}
+

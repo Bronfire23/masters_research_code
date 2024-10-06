@@ -1,4 +1,13 @@
 # Centralised multivariate gaussian mixture modeling
+
+## libaries
+library(ggplot2)
+library(MASS)
+library(reshape2)
+library(mvtnorm)
+file_path <- '/Users/bronwynmccall/Documents/GitHub/masters_research_code/Simulation code/'
+source(paste(file_path, 'all_models_use.R', sep = ""))
+
 ## parameters
 mu1=c(0,0,0,0)
 sigma1=matrix(c(3,0,0,0,0,3,0,0,0,0,3,0,0,0,0,3),ncol=4,nrow=4, byrow=TRUE)
@@ -12,12 +21,6 @@ covs <- list(sigma1, sigma2, sigma3)
 params <- list('means' = means,
                'covs' = covs,
                'probs' = probs)
-
-## libaries
-library(ggplot2)
-library(MASS)
-library(reshape2)
-library(mvtnorm)
 
 generate_multivariate_mixture_gaussian_data <- function(means, covariances, probs, n) {
   # Ensure lengths match
@@ -84,49 +87,6 @@ plot_mixture_histograms_with_density <- function(data, means, covariances, probs
 
 
 #################Code for EM#################
-calculate_data_belongings <- function(params, data) {
-  
-  # Extracting parameters
-  means <- params$means
-  covs <- params$covs
-  probs <- params$probs
-  
-  # Ensure the number of means, covariances, and probabilities are the same
-  if (length(means) != length(covs) || length(means) != length(probs)) {
-    stop("Number of means, covariance matrices, and component probabilities must be equal.")
-  }
-  
-  # Number of components and data points
-  n_components <- length(means)
-  n <- nrow(data)
-  
-  # Initialize a matrix to store the numerator for gamma
-  gamma_num <- matrix(nrow = n, ncol = n_components)
-  
-  # Calculate the numerator for each component
-  for (i in 1:n_components) {
-    gamma_num[, i] <- probs[i] * dmvnorm(data, mean = means[[i]], sigma = covs[[i]])  
-  }
-  
-  # Calculate the denominator (sum across all components for each data point)
-  gamma_den <- rowSums(gamma_num)
-  
-  # Calculate gamma (posterior probabilities for each component)
-  gamma <- gamma_num / gamma_den
-  
-  # Check if gamma rows sum to 1 (allowing small rounding errors)
-  if (any(abs(rowSums(gamma) - 1) > .Machine$double.eps * n)) {
-    stop("Calculated belongings for each data point do not sum to 1.")
-  }
-  
-  # Check for negative values in gamma
-  if (any(gamma < 0)) {
-    stop("Calculated belongings contain negative values.")
-  }
-  
-  return(gamma)
-}
-
 estimate_parameters_with_full_data <- function(data, data_belongings){
   n_k <- colSums(data_belongings)
   n <- nrow(data)
@@ -147,7 +107,7 @@ estimate_parameters_with_full_data <- function(data, data_belongings){
 
 # Generate data and count components
 data <- generate_multivariate_mixture_gaussian_data(means, covs, probs, 100)
-gamma <- calculate_data_belongings(params, data)
+gamma <- calculate_data_belongings_multivariate(params, data)
 estimate_parameters_with_full_data(data, gamma)
 plot_mixture_histograms_with_density(data, means, covs, probs)
 params

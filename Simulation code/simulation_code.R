@@ -1,7 +1,8 @@
 # Compare models 
-source('C:/Users/mccal/OneDrive/Desktop/Masters/Research/masters_research/IEM_model.R')
-source('C:/Users/mccal/OneDrive/Desktop/Masters/Research/masters_research/parallel_model.R')
-source('C:/Users/mccal/OneDrive/Desktop/Masters/Research/masters_research/centralised_model.R')
+file_path <- '/Users/bronwynmccall/Documents/GitHub/masters_research_code/Simulation code/'
+source(paste(file_path, 'IEM_model.R', sep = ""))
+source(paste(file_path, 'parallel_model.R', sep = ""))
+source(paste(file_path, 'centralised_model.R', sep = ""))
 library(psych)
 
 
