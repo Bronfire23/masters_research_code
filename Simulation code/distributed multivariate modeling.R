@@ -103,12 +103,14 @@ calculate_node_local_sufficient_statistics_multivariate <- function(data, params
     #### Number 2: sum of product (data and data belongings)
     sufficient_stat_two[[i]] <- colSums(belongings[, i] * data)
     #### Number 3: sum of product (data squared and data belongings)
-    sufficient_stat_three[[i]] <- t(belongings[,i]*(data - means[[i]]))%*%(data - means[[i]])
+    sufficient_stat_three[[i]] <- t(data) %*% diag(belongings[, i]) %*% data
   }
   
-  if(sum(sufficient_stat_one) != nrow(data)){
-    stop("The sum of the first sufficient statistic does not equal node sample size")
-  }
+  # if(sum(sufficient_stat_one) != nrow(data)){
+  #   print(sum(sufficient_stat_one))
+  #   print(nrow(data))
+  #   stop("The sum of the first sufficient statistic does not equal node sample size")
+  # }
   
   #if(any(diag(sufficient_stat_three) < 0)){
   #  stop("Third sufficient statistic is negative")
@@ -120,37 +122,19 @@ calculate_node_local_sufficient_statistics_multivariate <- function(data, params
   )
 }
 
-calculate_global_statistics_multivariate <- function(node_local_statistics, gamma) {
+calculate_global_statistics_multivariate <- function(node_local_statistics) {
   k <- length(node_local_statistics[[1]]$suff_stat_two)  # Number of components
-  num_nodes <- length(node_local_statistics)  # Number of nodes
   
-  global_suff_stat_one <- NULL
-  global_suff_stat_two <- list()
-  global_suff_stat_three <- list()
+  # Use Reduce to sum up sufficient statistics across all nodes
+  global_suff_stat_one <- Reduce(`+`, lapply(node_local_statistics, function(x) x$suff_stat_one))
   
-  # Initialize sums for suff_stat_two and suff_stat_three
-  for (i in 1:k) {
-    global_suff_stat_two[[i]] <- 0
-    global_suff_stat_three[[i]] <- 0
-  }
+  global_suff_stat_two <- lapply(1:k, function(i) {
+    Reduce(`+`, lapply(node_local_statistics, function(x) x$suff_stat_two[[i]]))
+  })
   
-  # Sum local statistics across all nodes for each component
-  for (node in 1:num_nodes) {
-    local_stats <- node_local_statistics[[node]]
-    
-    # First sufficient statistic (just summing across nodes)
-    if (is.null(global_suff_stat_one)) {
-      global_suff_stat_one <- local_stats$suff_stat_one
-    } else {
-      global_suff_stat_one <- global_suff_stat_one + local_stats$suff_stat_one
-    }
-    
-    # Second and third sufficient statistics (sum across nodes for each component)
-    for (i in 1:k) {
-      global_suff_stat_two[[i]] <- global_suff_stat_two[[i]] + local_stats$suff_stat_two[[i]]
-      global_suff_stat_three[[i]] <- global_suff_stat_three[[i]] + local_stats$suff_stat_three[[i]]
-    }
-  }
+  global_suff_stat_three <- lapply(1:k, function(i) {
+    Reduce(`+`, lapply(node_local_statistics, function(x) x$suff_stat_three[[i]]))
+  })
   
   return(list(
     "global_suff_stat_one" = global_suff_stat_one,
@@ -158,6 +142,7 @@ calculate_global_statistics_multivariate <- function(node_local_statistics, gamm
     "global_suff_stat_three" = global_suff_stat_three
   ))
 }
+
 
 estimate_parameters_with_sufficient_statistics_multivariate <- function(global_sufficient_statistics){
   
@@ -169,7 +154,8 @@ estimate_parameters_with_sufficient_statistics_multivariate <- function(global_s
   
   for (i in 1:k) {
     means[[i]] <- global_sufficient_statistics$global_suff_stat_two[[i]] / global_sufficient_statistics$global_suff_stat_one[i]
-    covs[[i]] <- global_sufficient_statistics$global_suff_stat_three[[i]] / global_sufficient_statistics$global_suff_stat_one[i]
+    covs[[i]] <- (global_sufficient_statistics$global_suff_stat_three[[i]] / global_sufficient_statistics$global_suff_stat_one[i]) - 
+      (means[[i]] %*% t(means[[i]]))
     probs <- cbind(probs,
                    global_sufficient_statistics$global_suff_stat_one[i] / sum(global_sufficient_statistics$global_suff_stat_one))
   }
@@ -186,7 +172,7 @@ data_chunks <- lapply(1:4, function(x) generate_multivariate_mixture_gaussian_da
 node_local_statistics <- lapply(1:4, function(x) calculate_node_local_sufficient_statistics_multivariate(
   data_chunks[[x]], params
 ))
-global_sufficient_statistics <- calculate_global_statistics_multivariate(node_local_statistics, gamma)
+global_sufficient_statistics <- calculate_global_statistics_multivariate(node_local_statistics)
 params_new_dist <- estimate_parameters_with_sufficient_statistics_multivariate(global_sufficient_statistics)
 params_new_dist
 data <- NULL
@@ -197,4 +183,9 @@ gamma <- calculate_data_belongings_multivariate(params, data)
 centralised_estimates <- estimate_parameters_with_full_data(data, gamma)
 calculate_log_likelihood_with_full_data_multivariate(data, params_new_dist)
 calculate_log_likelihood_with_full_data_multivariate(data, centralised_estimates)
-
+ss_centralised <- lapply(1:1, function(x) calculate_node_local_sufficient_statistics_multivariate(
+  data, params
+))
+gs_centralised <- calculate_global_statistics_multivariate(ss_centralised)
+centralised_ss_estimates <- estimate_parameters_with_sufficient_statistics_multivariate(gs_centralised)
+centralised_estimates

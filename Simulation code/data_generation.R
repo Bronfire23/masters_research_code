@@ -29,7 +29,7 @@ generate_univariate_mixture_gaussian_data <- function(means, stds, probs, n){
     }
     data <- matrix(nrow = n)
     for(i in 1:n){
-        component <- rmultinom(1, 1, probs) + 1
+        component <- which(rmultinom(1, 1, probs) == 1)
         data[i] <- rnorm(1, mean = means[component], sd = stds[component])
     }
     return(data)
@@ -54,7 +54,6 @@ plot_univariate_gaussian_data <- function(data, n_components, params,
     probs <- params$mixing_probs
     ## Histogram
     hist(data, breaks = 50, col = "lightblue", xlab = "Value", 
-         main = "Histogram of two-component univariate Gaussian mixture model",
          freq = freq)
     ## Overlayed line plot
     if (overlay) {
@@ -65,4 +64,46 @@ plot_univariate_gaussian_data <- function(data, n_components, params,
         }
     }
 }
+
+library(ggplot2)
+
+# Combined function to calculate prediction and plot GMM over histogram
+plot_gmm_predictions <- function(data_nodes, params, bins = 50, hist_fill = "lightblue", line_color = "red") {
+  
+  # Function to calculate the predicted density
+  calculate_prediction <- function(data, params) {
+    n_components <- length(params$means)
+    prediction <- rep(0, length(data))
+    
+    for (i in 1:n_components) {
+      prediction <- prediction + (params$mixing_probs[i] * dnorm(data, 
+                                                                 mean = params$means[i], 
+                                                                 sd = params$stds[i]))
+    }
+    return(prediction)
+  }
+  
+  # Calculate the predicted densities
+  densities <- calculate_prediction(unlist(data_nodes), params = params)
+  
+  # Create a data frame for ggplot
+  data_frame <- data.frame(
+    x = unlist(data_nodes),
+    density = densities
+  )
+  
+  # Plot histogram with density estimation line
+  ggplot(data_frame, aes(x = x)) +
+    geom_histogram(aes(y = ..density..), bins = bins, fill = hist_fill, color = "black", alpha = 0.7) +
+    geom_line(aes(y = density), color = line_color, size = 1) +
+    labs(
+      title = "Histogram and Density Estimation of GMM",
+      x = "Value",
+      y = "Density"
+    ) +
+    theme_minimal()
+}
+
+# Example usage
+# plot_gmm_predictions(data_nodes, results$parameters)
 

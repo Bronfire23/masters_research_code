@@ -100,7 +100,7 @@ estimate_parameters_with_full_data <- function(data, data_belongings){
     means[[i]] <- colSums(data_belongings[, i] * data) / n_k[i]
     covs[[i]] <- (t(data_belongings[,i]*(data - means[[i]]))%*%(data - means[[i]]))/n_k[i]
   }
-  return(list('probs' = probs,
+  return(list('mixing_probs' = probs,
               'means' = means,
               'covs' = covs))
 }
